@@ -18,7 +18,7 @@ function doGet(e) {
     const studentData = getStudentDataByID(studentID);
     if (studentData) {
       template.studentID = studentData.id;
-      template.name = studentData.lastName;
+      template.name = studentData.name;
     } else {
       template.error = "Invalid Student ID";
     }
@@ -36,8 +36,8 @@ function getStudentDataByID(id) {
   for (let i = 3; i < data.length; i++) {
     if (data[i][0] == id) {
       return {
-        id: data[i][5],
-        name: data[i][0],
+        id: data[i][0],
+        name: data[i][5],
       };
     }
   }
