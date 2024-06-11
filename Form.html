@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <base target="_top">
+</head>
+
+<body>
+    <form action="?" method="post">
+        <label for="id">Student ID:</label>
+        <input type="text" id="id" name="id" value="<?= studentID ?>" required>
+        <br>
+        <? if (studentID) { ?>
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" value="<?= name ?>" readonly>
+        <br>
+        <input type="submit" value="Submit">
+        <? } else { ?>
+        <p><?= error ?></p>
+        <? } ?>
+    </form>
+</body>
+
+</html>
