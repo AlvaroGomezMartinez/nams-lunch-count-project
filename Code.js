@@ -1,63 +1,177 @@
-// Trigger function to run every day to create a new sheet
+/**
+ * @author Alvaro Gomez
+ * Academic Technology Coach
+ * Office: 210-397-9408
+ * Cell: 210-363-1577
+ */
+
+/**
+ * Serves the HTML file when the web app is accessed.
+ *
+ * @returns {HtmlOutput} The HTML content to be served.
+ */
+function doGet() {
+  return HtmlService.createHtmlOutputFromFile('Form');
+}
+
+let studentDataMap = {};
+
+/**
+ * Loads student data from a Google Spreadsheet and caches it in script properties.
+ * 
+ * This function retrieves student data from two sheets ("Active" and "Allergies") in a 
+ * specified spreadsheet. It maps student IDs to their respective allergies data, 
+ * and then stores this information in the `studentDataMap`.
+ */
+function loadStudentData() {
+  try {
+    const criteriaSheet = '1O3DSgTbhphNVDXLmlGkEiyVejsL_l4fPsf2cJJpQpTo';
+    const studentData = SpreadsheetApp.openById(criteriaSheet);
+
+    // Load data from "Active" sheet
+    const activeSheet = studentData.getSheetByName('Active');
+    const lastRow = activeSheet.getLastRow();
+    const lastColumn = activeSheet.getLastColumn();
+    const activeData = activeSheet.getRange(2,1,lastRow, lastColumn).getValues();
+
+    // Filter out rows where all values are empty ("" or equivalent empty)
+    const filteredData = activeData.filter(row => row.some(cell => cell !== '' && cell !== 0 && cell !== false));
+
+    // Load data from "Allergies" sheet
+    const allergiesSheet = studentData.getSheetByName('Allergies');
+    const allergiesSheetLastRow = allergiesSheet.getLastRow();
+    const allergiesSheetLastColumn = allergiesSheet.getLastColumn();
+    const allergiesData = allergiesSheet.getRange(2,1,allergiesSheetLastRow,allergiesSheetLastColumn).getValues();
+
+    studentDataMap = {};  // Clear existing data
+
+    // Create a map for student ID -> allergies data (from columns D and E in "Allergies" sheet)
+    let allergiesMap = {};
+    for (let i = 0; i < allergiesData.length; i++) {
+      let row = allergiesData[i];
+      let studentId = row[1].toString().trim();  // Student ID is in column B
+      let medAlertCode = row[3].toString().trim();  // Column D
+      let medAlertComment = row[4].toString().trim();  // Column E
+      if (studentId !== '') {
+        allergiesMap[studentId] = {
+          medAlertCode: medAlertCode || '',
+          medAlertComment: medAlertComment || ''
+        };
+      }
+    }
+
+    // Match "Active" student IDs with data from "Allergies" and build the studentDataMap
+    for (let i = 0; i < filteredData.length; i++) {
+      let row = filteredData[i];
+      let colF = row[5].toString().trim();  // Student ID from "Active"
+      let colA = row[0].toString().trim();  // Student Name
+      if (colF !== '' && colA !== '') {
+        // Get allergies data if available
+        let allergies = allergiesMap[colF] || { medAlertCode: '', medAlertComment: '' };
+
+        // Store student data in studentDataMap
+        studentDataMap[colF] = {
+          name: colA,
+          medAlertCode: allergies.medAlertCode,
+          medAlertComment: allergies.medAlertComment
+        };
+      }
+    }
+
+    // Cache the studentDataMap
+    PropertiesService.getScriptProperties().setProperty('studentDataMap', JSON.stringify(studentDataMap));
+  } catch (e) {
+    console.error('Error loading student data: ', e);
+    throw new Error('Failed to load student data');
+  }
+}
+
+/**
+ * Initializes the student data by loading it from the source spreadsheet.
+ * 
+ * This function is used to prepare student data when the script is first deployed.
+ */
+function initializeData() {
+  loadStudentData();
+}
+
+/**
+ * Retrieves cached student data from script properties, or loads it if not available.
+ */
+function getCachedStudentData() {
+  const cachedData = PropertiesService.getScriptProperties().getProperty('studentDataMap');
+  if (cachedData) {
+    studentDataMap = JSON.parse(cachedData);
+  } else {
+    loadStudentData();
+  }
+}
+
+/**
+ * Searches for a student by their ID and returns relevant information, including allergies.
+ *
+ * @param {string} studentId - The ID of the student to search for.
+ * @returns {Object} An object containing the student's details, or an error message if not found.
+ */
+function searchStudentById(studentId) {
+  getCachedStudentData();  // Get the cached data before searching
+  const trimmedStudentId = studentId.toString().trim();
+  const studentInfo = studentDataMap[trimmedStudentId];
+  if (studentInfo) {
+    return {
+      success: true,
+      studentId: trimmedStudentId,
+      studentName: studentInfo.name,
+      medAlertCode: studentInfo.medAlertCode,
+      medAlertComment: studentInfo.medAlertComment
+    };
+  } else {
+    return { success: false, message: 'Student ID not found' };
+  }
+}
+
+/**
+ * Creates a new sheet in the target spreadsheet with today's date as its name.
+ * 
+ * @returns {Sheet} The newly created sheet, or the existing one if already present.
+ */
 function createDailySheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const date = new Date();
-  const sheetName = Utilities.formatDate(date, Session.getScriptTimeZone(), 'yyyy-MM-dd');
-  const sheet = ss.insertSheet(sheetName);
+  const targetSheetId = '1UiCJWAnAAk0Ay7Oyvd9oUsUe7ZNMAOw211Ip2XBrsw0';
+  const targetSpreadsheet = SpreadsheetApp.openById(targetSheetId);
   
-  // Set up headers in the new sheet
-  sheet.appendRow(['Timestamp', 'ID', 'Name']);
-}
+  const today = new Date();
+  const sheetName = Utilities.formatDate(today, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  
+  // Check if the sheet already exists
+  let sheet = targetSpreadsheet.getSheetByName(sheetName);
+  if (!sheet) {
+    // Create a new sheet with the current date as its name
+    sheet = targetSpreadsheet.insertSheet(sheetName);
+    sheet.appendRow(['Timestamp', 'Student ID', 'Student Name', 'Med Alert Code', 'Med Alert Comment']);
 
-// Function to validate ID and autofill names in the form
-function doGet(e) {
-  const studentID = e.parameter.id;
-  const template = HtmlService.createTemplateFromFile('Form');
-
-  if (studentID) {
-    const studentData = getStudentDataByID(studentID);
-    if (studentData) {
-      template.studentID = studentData.id;
-      template.name = studentData.name;
-    } else {
-      template.error = "Invalid Student ID";
-    }
+    // Move the new sheet to the first position
+    targetSpreadsheet.setActiveSheet(sheet);
+    targetSpreadsheet.moveActiveSheet(0);
   }
-
-  return template.evaluate().setTitle('Lunch Count Form');
+  return sheet;
 }
 
-function getStudentDataByID(id) {
-  const spreadsheetId = '1O3DSgTbhphNVDXLmlGkEiyVejsL_l4fPsf2cJJpQpTo'; // NAMS 2024-25 Criteria Sheet
-  const spreadsheet = SpreadsheetApp.openById(spreadsheetId);
-  const sheet = spreadsheet.getSheetByName('Active');
-  const data = sheet.getDataRange().getValues();
+/**
+ * Submits student data to a new row in the current daily sheet.
+ * 
+ * @param {string} studentId - The ID of the student.
+ * @param {string} result - The result object containing the student's name.
+ * @param {string} alertCode - The alertCode that currently exists in the student's record.
+ * @param {string} alertComment - Details regarding the alertCode.
+ * 
+ * @returns {string} A success message to the user.
+ */
+function submitStudentData(studentId, result, alertCode, alertComment) {
+  const sheet = createDailySheet();
 
-  for (let i = 3; i < data.length; i++) {
-    if (data[i][0] == id) {
-      return {
-        id: data[i][0],
-        name: data[i][5],
-      };
-    }
-  }
+  const now = new Date();
+  const formattedDate = Utilities.formatDate(now, Session.getScriptTimeZone(), 'MM/dd/yyyy HH:mm:ss');
 
-  return null;
-}
-
-// Function to handle form submissions
-function doPost(e) {
-
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const date = new Date();
-  const sheetName = Utilities.formatDate(date, Session.getScriptTimeZone(), 'yyyy-MM-dd');
-  const sheet = ss.getSheetByName(sheetName);
-
-  const studentID = e.parameter.id;
-  const name = e.parameter.name;
-  const timestamp = new Date();
-
-  sheet.appendRow([timestamp, studentID, name]);
-
-  return HtmlService.createHtmlOutput('Thank you! Your response has been recorded.');
+  sheet.appendRow([formattedDate, studentId, result, alertCode, alertComment]);
+  return 'Your name was added to the lunch list successfully 😀';
 }
