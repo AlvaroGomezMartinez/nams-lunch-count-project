@@ -89,7 +89,9 @@ function loadStudentData() {
 /**
  * Initializes the student data by loading it from the source spreadsheet.
  * 
- * This function is used to prepare student data when the script is first deployed.
+ * This function is used to add student data to the Project Settings Script Properties.
+ * A trigger is set to run this function daily so that the script property contains the most
+ * recent data from the "Criteria Sheet".
  */
 function initializeData() {
   loadStudentData();
@@ -108,25 +110,47 @@ function getCachedStudentData() {
 }
 
 /**
- * Searches for a student by their ID and returns relevant information, including allergies.
+ * Searches for a student by either ID or name, based on the input.
  *
- * @param {string} studentId - The ID of the student to search for.
- * @returns {Object} An object containing the student's details, or an error message if not found.
+ * @param {string} input - The user input, which could be a student ID or name.
+ * @returns {Object} Search results: either a single student (if ID is matched) or a list of students (if name is matched).
  */
-function searchStudentById(studentId) {
-  getCachedStudentData();  // Get the cached data before searching
-  const trimmedStudentId = studentId.toString().trim();
-  const studentInfo = studentDataMap[trimmedStudentId];
-  if (studentInfo) {
-    return {
-      success: true,
-      studentId: trimmedStudentId,
-      studentName: studentInfo.name,
-      medAlertCode: studentInfo.medAlertCode,
-      medAlertComment: studentInfo.medAlertComment
-    };
+function searchStudent(input) {
+  getCachedStudentData();
+  const trimmedInput = input.trim();
+  
+  if (/^\d+$/.test(trimmedInput)) {
+    // Input is numeric, assume it's a student ID
+    const studentInfo = studentDataMap[trimmedInput];
+    if (studentInfo) {
+      return {
+        success: true,
+        matches: [{
+          studentId: trimmedInput,
+          studentName: studentInfo.name,
+          medAlertCode: studentInfo.medAlertCode,
+          medAlertComment: studentInfo.medAlertComment
+        }]
+      };
+    } else {
+      return { success: false, message: 'Student ID not found' };
+    }
   } else {
-    return { success: false, message: 'Student ID not found' };
+    // Input is not numeric, assume it's a name
+    const matches = Object.entries(studentDataMap)
+      .filter(([id, data]) => data.name.toLowerCase().includes(trimmedInput.toLowerCase()))
+      .map(([id, data]) => ({
+        studentId: id,
+        studentName: data.name,
+        medAlertCode: data.medAlertCode,
+        medAlertComment: data.medAlertComment
+      }));
+
+    if (matches.length > 0) {
+      return { success: true, matches: matches };
+    } else {
+      return { success: false, message: 'No students found with that name' };
+    }
   }
 }
 
@@ -138,7 +162,6 @@ function searchStudentById(studentId) {
 function createDailySheet() {
   const targetSheetId = '1UiCJWAnAAk0Ay7Oyvd9oUsUe7ZNMAOw211Ip2XBrsw0';
   const targetSpreadsheet = SpreadsheetApp.openById(targetSheetId);
-  
   const today = new Date();
   const sheetName = Utilities.formatDate(today, Session.getScriptTimeZone(), 'yyyy-MM-dd');
   
@@ -158,6 +181,8 @@ function createDailySheet() {
 
 /**
  * Submits student data to a new row in the current daily sheet.
+ * This function is called from Form.html from the submitStudent function found in the script tag
+ * of the html body.
  * 
  * @param {string} studentId - The ID of the student.
  * @param {string} result - The result object containing the student's name.
@@ -173,5 +198,5 @@ function submitStudentData(studentId, result, alertCode, alertComment) {
   const formattedDate = Utilities.formatDate(now, Session.getScriptTimeZone(), 'MM/dd/yyyy HH:mm:ss');
 
   sheet.appendRow([formattedDate, studentId, result, alertCode, alertComment]);
-  return 'Your name was added to the lunch list successfully 😀';
+  return '🍔 Name added 🍔';
 }
