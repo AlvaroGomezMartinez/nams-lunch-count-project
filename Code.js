@@ -17,6 +17,27 @@ function doGet() {
 let studentDataMap = {};
 
 /**
+ * Adds a custom menu to the Google Sheets UI when the document is opened.
+ */
+function onOpen() {
+  const ui = SpreadsheetApp.getUi();
+  ui.createMenu('NAMS Meal Count Information')
+    .addItem('Click here for information', 'showInfoDialog')
+    .addToUi();
+}
+
+/**
+ * Opens a modal dialog with information and hyperlinks.
+ */
+function showInfoDialog() {
+  const htmlContent = HtmlService.createHtmlOutputFromFile('InfoDialog')
+    .setWidth(800)
+    .setHeight(600);
+  SpreadsheetApp.getUi().showModalDialog(htmlContent, 'Project Information');
+}
+
+
+/**
  * Loads student data from a Google Spreadsheet and caches it in script properties.
  * 
  * This function retrieves student data from two sheets ("Active" and "Allergies") in a 
