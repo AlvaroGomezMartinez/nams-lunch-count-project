@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Information</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      line-height: 1.6;
+    }
+    h1 {
+      color: #333;
+    }
+    a {
+      color: #007bff;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <h1>Student Log-in Station Setup</h1>
+  <ol>
+    <li>Get a Chromebook or device where students will enter their IDs.</li>
+    <li>Open up the <a href="https://bit.ly/namsmeals" target="_blank">NAMS Meals Counts webpage</a>.</li>
+    <li>Set the Chromebook somewhere for the students to add their IDs into.</li>
+  </ol>
+  <h1>Getting the Meals List</h1>
+  <ol>
+    <li>A new sheet will be added to this spreadsheet. The most recent day will be listed across the bottom of the spreadsheet.</li>
+    <li>This spreadsheet is only shared with certain people.</li>
+  </ol>
+  <h1>Technical Details</h1>
+    <p>
+      The search field in the <a href="https://bit.ly/namsmeals" target="_blank">webpage</a> where students enter their ID references the <a href="https://docs.google.com/spreadsheets/d/1O3DSgTbhphNVDXLmlGkEiyVejsL_l4fPsf2cJJpQpTo/edit?gid=0#gid=0" target="_blank">NAMS Criteria Sheet</a> when it searches their information. The student data on the NAMS Criteria Sheet will be returned when the student searches for their ID or name on the webpage.
+    </p>
+    <p>The webpage is built using <a href="https://developers.google.com/apps-script" target="_blank">Google Apps Script</a>. The script can be found in this spreadsheet by going to <i>Extensions</i> then <i>Apps Script</i> in the menu bar.
+    </p>
+  <h1>Student Directions</h1>
+  <ol>
+    <li>Enter your S# or Name in the field.</li>
+    <li>Click the blue “Search” button or hit the “enter” key.</li>
+    <li>When your name is found, it will appear underneath the search field.</li>
+    <li>If it isn’t found, you will see a message that the name was not found. Re-enter your S# or search with your name.</li>
+    <li>If your name is still not found, you are not on the NAMS Criteria sheet, the name on the list is misspelled, or the ID# on the sheet doesn’t match.</li>
+    <li>When the name appears, click the yellow “Add to list” button or hit enter.</li>
+  </ol>
+  
+  
+</body>
+</html>
